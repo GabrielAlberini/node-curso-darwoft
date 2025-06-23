@@ -1,4 +1,10 @@
+// punto de entrada al sistema
+// levantar la base de datos
+// levantar el servidor http
+
 import express from "express"
+import { connect } from "./config/mongoConnect";
+import { taskRouter } from "./routes/taskRouter";
 process.loadEnvFile()
 
 const tasks = [
@@ -47,33 +53,17 @@ const tasks = [
 const PORT = process.env.PORT ?? 1234
 
 const app = express()
+app.use(express.json())
 
-// obtener todas las tareas
-app.get("/api/tasks", (request, response) => {
-  response.json({ data: tasks })
-})
+// quiero todas las tareas -> GET - http://localhost:3000/api/tasks
 
-//agregar una tarea
-app.post("/api/tasks", (request, response) => {
-  // ver si me mandaron la data
-  // validar la data
-  // ver si ya existe 
-  // si no se repite
-  // si tiene los permisos
-})
-
-//actualizar una tarea
-app.patch("/api/tasks/:id", (request, response) => {
-})
-
-//borrar una tarea
-app.delete("/api/tasks/:id", (request, response) => {
-})
+app.use("/api/tasks", taskRouter)
 
 // Entidad auth
-app.post("/api/auth/login", () => { })
-app.post("/api/auth/register", () => { })
+// app.post("/api/auth/login", () => { })
+// app.post("/api/auth/register", () => { })
 
 app.listen(PORT, () => {
   console.log("✅ Servidor en escucha por el puerto 3000")
+  connect()
 })
