@@ -2,9 +2,11 @@
 // levantar la base de datos
 // levantar el servidor http
 
-import express from "express"
+import express, { NextFunction, Request, Response } from "express"
 import { connect } from "./config/mongoConnect";
 import { taskRouter } from "./routes/taskRouter";
+import { authRouter } from "./routes/authRouter"
+import { authMiddleware } from "./middlewares/auth";
 process.loadEnvFile()
 
 const tasks = [
@@ -56,6 +58,8 @@ const app = express()
 app.use(express.json())
 
 // quiero todas las tareas -> GET - http://localhost:3000/api/tasks
+
+app.use("/api/auth", authRouter)
 
 app.use("/api/tasks", taskRouter)
 

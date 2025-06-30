@@ -19,7 +19,8 @@ const {
 
 const getAllTasks = async (request: Request, response: Response) => {
   try {
-    const tasks = await Task.find({})
+    const userId = request.userId
+    const tasks = await Task.find({ userId })
     response.status(OK).json({ success: true, message: "Éxito al obtener las tareas", data: tasks })
   } catch (error: any) {
     response.status(INTERNAL_SERVER_ERROR).json({ success: false, message: error.message })
@@ -28,6 +29,7 @@ const getAllTasks = async (request: Request, response: Response) => {
 
 const createTask = async (request: Request, response: Response): Promise<any> => {
   const body = request.body
+  const userId = request.userId
   try {
     const { text } = body
 
@@ -39,7 +41,7 @@ const createTask = async (request: Request, response: Response): Promise<any> =>
 
     //-----------------------------------------
 
-    const newTask = new Task({ text })
+    const newTask = new Task({ text, userId })
     await newTask.save()
 
     response.status(CREATED).json({ success: true, message: "Tarea registrada con éxito", data: newTask })
