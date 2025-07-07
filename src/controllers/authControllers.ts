@@ -8,21 +8,21 @@ import { generateToken } from "../utils/jwt"
 
 const { OK, BAD_REQUEST, CREATED, INTERNAL_SERVER_ERROR } = HTTP_STATUS_CODES
 
-const register = async (req: Request, res: Response): Promise<any> => {
+const register = async (req: Request, res: Response): Promise<void> => {
   const { email, password } = req.body
   try {
-    // sanitizar o validar la data de entrada
-    // persistir en la db
     const validator = userSchema.safeParse({ email, password })
 
     if (!validator.success) {
-      return res.status(BAD_REQUEST).json({ success: false, message: validator.error.issues })
+      res.status(BAD_REQUEST).json({ success: false, message: validator.error.issues })
+      return
     }
 
     const existingUser = await User.findOne({ email })
 
     if (existingUser) {
-      return res.status(BAD_REQUEST).json({ success: false, message: "Email ya registrado" })
+      res.status(BAD_REQUEST).json({ success: false, message: "Email ya registrado" })
+      return
     }
 
     const hash = await bcryptjs.hash(password, 10)
@@ -34,32 +34,32 @@ const register = async (req: Request, res: Response): Promise<any> => {
 
     res.status(CREATED).json({ success: true, message: "Usuario registrado exitosamente", token })
   } catch (error) {
-    // if ((error as any).code === 11000) {
-    //   res.status(BAD_REQUEST).json({ success: false, message: "Email ya existente." })
-    // }
     const err = error as Error
     res.status(INTERNAL_SERVER_ERROR).json({ success: false, message: err.message })
   }
 }
 
-const login = async (req: Request, res: Response): Promise<any> => {
+const login = async (req: Request, res: Response): Promise<void> => {
   const { email, password } = req.body
   try {
     const validator = userSchema.safeParse({ email, password })
 
     if (!validator.success) {
-      return res.status(BAD_REQUEST).json({ success: false, message: validator.error.issues })
+      res.status(BAD_REQUEST).json({ success: false, message: validator.error.issues })
+      return
     }
 
     const user = await User.findOne({ email })
 
     if (!user) {
-      return res.status(BAD_REQUEST).json({ success: false, message: "Credenciales invalidas" })
+      res.status(BAD_REQUEST).json({ success: false, message: "Credenciales invalidas" })
+      return
     }
 
     const isMatch = await bcryptjs.compare(password, user.password)
     if (!isMatch) {
-      return res.status(BAD_REQUEST).json({ success: false, message: "Credenciales invalidas" })
+      res.status(BAD_REQUEST).json({ success: false, message: "Credenciales invalidas" })
+      return
     }
 
     const token = generateToken(user._id.toString())

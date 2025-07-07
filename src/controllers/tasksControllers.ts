@@ -13,82 +13,93 @@ const {
   INTERNAL_SERVER_ERROR,
 } = HTTP_STATUS_CODES
 
-
-// caso deseado -> {success: true, message: string, data}
-// caso no deseado -> {success: false, message}
-
-const getAllTasks = async (request: Request, response: Response) => {
-  try {
-    const userId = request.userId
-    const tasks = await Task.find({ userId })
-    response.status(OK).json({ success: true, message: "Éxito al obtener las tareas", data: tasks })
-  } catch (error: any) {
-    response.status(INTERNAL_SERVER_ERROR).json({ success: false, message: error.message })
+declare module "express" {
+  interface Request {
+    userId?: string
   }
 }
 
-const createTask = async (request: Request, response: Response): Promise<any> => {
-  const body = request.body
-  const userId = request.userId
+const getAllTasks = async (req: Request, res: Response) => {
+  try {
+    const userId = req.userId
+    const tasks = await Task.find({ userId })
+    res.status(OK).json({ success: true, message: "Éxito al obtener las tareas", data: tasks })
+  } catch (error: any) {
+    res.status(INTERNAL_SERVER_ERROR).json({ success: false, message: error.message })
+  }
+}
+
+const createTask = async (req: Request, res: Response): Promise<void> => {
+  const body = req.body
+  const userId = req.userId
   try {
     const { text } = body
 
     const validator = taskSchema.safeParse({ text })
 
     if (!validator.success) {
-      return response.status(BAD_REQUEST).json({ success: false, message: validator.error.issues })
+      res.status(BAD_REQUEST).json({ success: false, message: validator.error.issues })
+      return
     }
-
-    //-----------------------------------------
 
     const newTask = new Task({ text, userId })
     await newTask.save()
 
-    response.status(CREATED).json({ success: true, message: "Tarea registrada con éxito", data: newTask })
+    res.status(CREATED).json({ success: true, message: "Tarea registrada con éxito", data: newTask })
   } catch (error: any) {
-    response.status(INTERNAL_SERVER_ERROR).json({ success: false, message: error.message })
+    res.status(INTERNAL_SERVER_ERROR).json({ success: false, message: error.message })
   }
 }
 
-const updateTask = async (request: Request, response: Response): Promise<any> => {
-  const id = request.params.id
-  const body = request.body
+const updateTask = async (req: Request, res: Response): Promise<void> => {
+  const id = req.params.id
+  const body = req.body
+  const userId = req.userId
   try {
-    const { text } = body
+    const { completed } = body
 
-    if (!text || !id) {
-      return response.status(BAD_REQUEST).json({ success: false, message: "Data invalida" })
+    if (!id || completed === undefined) {
+      res.status(BAD_REQUEST).json({ success: false, message: "Data invalida" })
+      return
     }
 
-    const updatedTask = await Task.findByIdAndUpdate(id, { text }, { new: true })
+    const task = await Task.findOne({ _id: id, userId })
 
-    if (!updatedTask) {
-      return response.status(NOT_FOUND).json({ success: false, message: "Error al encontrar la tarea" })
+    if (!task) {
+      res.status(NOT_FOUND).json({ success: false, message: "Tarea no encontrada" })
+      return
     }
 
-    response.json({ success: true, message: "Tarea actualizada con éxito", data: updatedTask })
+    task.completed = !task.completed
+    await task.save()
+
+    res.json({ success: true, message: "Tarea actualizada con éxito", data: task })
   } catch (error) {
     const err = error as Error
-    response.status(INTERNAL_SERVER_ERROR).json({ success: false, message: err.message })
+    res.status(INTERNAL_SERVER_ERROR).json({ success: false, message: err.message })
   }
 }
 
-const deleteTask = async (request: Request, response: Response): Promise<any> => {
-  const { id } = request.params
+const deleteTask = async (req: Request, res: Response): Promise<void> => {
+  const { id } = req.params
+  const userId = req.userId
+
   try {
     if (!id) {
-      return response.status(BAD_REQUEST).json({ success: "false", message: "Data invalida" })
+      res.status(BAD_REQUEST).json({ success: "false", message: "Data invalida" })
+      return
     }
 
-    const deletedTask = await Task.findByIdAndDelete(id)
+    const deletedTask = await Task.findByIdAndDelete({ _id: id, userId })
     if (!deletedTask) {
-      return response.status(NOT_FOUND).json({ success: false, message: "Error al encontrar la tarea" })
+      res.status(NOT_FOUND).json({ success: false, message: "Error al encontrar la tarea" })
+      return
     }
 
-    response.json({ success: true, message: "Tarea borrada con éxito", data: deletedTask._id })
+    res.json({ success: true, message: "Tarea borrada con éxito", data: deletedTask._id })
   } catch (error) {
     const err = error as Error
-    response.status(INTERNAL_SERVER_ERROR).json({ success: false, message: err.message })
+    res.status(INTERNAL_SERVER_ERROR).json({ success: false, message: err.message })
   }
 }
 
