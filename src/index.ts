@@ -4,6 +4,7 @@ import { connect } from "./config/mongoConnect";
 import { taskRouter } from "./routes/taskRouter";
 import { authRouter } from "./routes/authRouter"
 import cors from "cors"
+import { apiLimiter } from "./middlewares/rateLimit";
 
 const PORT = process.env.PORT ?? 1234
 
@@ -11,8 +12,8 @@ const app = express()
 app.use(express.json())
 app.use(cors())
 
-app.use("/api/auth", authRouter)
-app.use("/api/tasks", taskRouter)
+app.use("/api/auth", apiLimiter, authRouter)
+app.use("/api/tasks", apiLimiter, taskRouter)
 
 app.use("/api", (req, res) => {
   res.status(404).json({
